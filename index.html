@@ -16,7 +16,7 @@
 <body>
 
     <video id="player" playsinline controls preload="metadata" poster="https://xalaflix.eu/upload/images/bmFSbK6HMDz5moHjIkf3BatBdca.jpg">
-        <source id="video-source" src="https://mayi22140.mayicloud.com/files/aa/bU4cGZhssurEmByhmkSHnXVytre4pqbAkgM.m3u8" type="video/mp4">
+        <source id="video-source" src="https://mayi22140.mayicloud.com/files/aa/bU4cGZhssurEmByhmkSHnXVytre4pqbAkgM.m3u8" type="application/x-mpegURL">
         <track kind="subtitles" label="Français" srclang="fr" src="sous-titres/subtitles.vtt" default>
         Votre navigateur ne prend pas en charge la balise vidéo.
     </video>
@@ -25,9 +25,8 @@
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
-    <script src="js/FWDEVPlayer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-    <!-- Combined FWDEVPlayer and Plyr Script -->
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', () => {
             const playerControls = ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings', 'download'];
@@ -64,47 +63,53 @@
 
             const videoElement = document.getElementById('player');
             const videoSource = document.getElementById('video-source');
-            const loaderElement = document.getElementById('video-loader');
-            const errorElement = document.getElementById('video-error');
+            const storageKey = generateStorageKey(videoSource.src);
 
-            // Preload video and handle error
-            videoSource.src = videoSource.src; // Reset source to begin loading
-            videoElement.load(); // Load the video
+            // Fonction pour générer une clé unique basée sur l'URL de la vidéo
+            const generateStorageKey = (url) => `videoPlayerPosition_${url}`;
 
-            videoElement.addEventListener('canplay', function() {
-                loaderElement.style.display = 'none';
-                videoElement.style.display = 'block';
+            // Sauvegarder la position de lecture
+            const savePosition = () => {
+                const currentTime = videoElement.currentTime;
+                localStorage.setItem(storageKey, currentTime);
+                console.log(`Position de lecture sauvegardée : ${currentTime} secondes pour la vidéo ${videoSource.src}.`);
+            };
+
+            // Sauvegarder la position quand la vidéo est mise en pause
+            videoElement.addEventListener('pause', savePosition);
+
+            // Sauvegarder la position lorsque l'utilisateur quitte la page
+            window.addEventListener('beforeunload', savePosition);
+
+            // Supprimer la position si la vidéo est terminée
+            videoElement.addEventListener('ended', () => {
+                localStorage.removeItem(storageKey);
+                console.log('Lecture terminée, position supprimée pour la vidéo ' + videoSource.src);
             });
 
-            videoElement.addEventListener('error', function() {
-                loaderElement.style.display = 'none';
-                videoElement.style.display = 'none';
-                errorElement.style.display = 'block';
-            });
+            // Récupérer la position de lecture enregistrée pour cette vidéo
+            const savedPosition = localStorage.getItem(storageKey);
+            if (savedPosition) {
+                videoElement.currentTime = parseFloat(savedPosition);
+                console.log(`Reprise de la lecture à la position : ${savedPosition} secondes pour la vidéo ${videoSource.src}.`);
+            }
 
             // HLS (HTTP Live Streaming) support
-            player.on('ready', function(event) {
-                const instance = event.detail.plyr;
-                const sources = instance.media.querySelectorAll('source');
-                let hslSource = null;
-
-                // Detect HLS source (.m3u8) if available
-                sources.forEach(source => {
-                    if (source.src.includes('.m3u8')) {
-                        hslSource = source.src;
-                    }
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(videoSource.src);
+                hls.attachMedia(videoElement);
+                hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                    videoElement.play();
                 });
-
-                // Initialize HLS.js if HLS source is found and supported
-                if (hslSource !== null && Hls.isSupported()) {
-                    const hls = new Hls();
-                    hls.loadSource(hslSource);
-                    hls.attachMedia(instance.media);
-                }
-            });
+            } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                videoElement.src = videoSource.src;
+                videoElement.addEventListener('loadedmetadata', function() {
+                    videoElement.play();
+                });
+            }
         });
     </script>
 </body>
 </html>
-
 
