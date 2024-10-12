@@ -12,55 +12,9 @@
 
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,800&display=swap" rel="stylesheet">
-    
-    <style>
-        /* Style pour la zone d'affichage du titre, du temps et du poster */
-        .video-info {
-            position: absolute;
-            top: 20px; /* Ajustement de la hauteur du texte */
-            left: 10px;
-            color: white;
-            padding: 10px;
-            border-radius: 5px;
-            display: none; /* Masque par défaut */
-            flex-direction: row; /* Aligne le poster avec le texte */
-            align-items: flex-start;
-            font-size: 1.2em;
-            z-index: 1000;
-        }
-
-        .video-info img {
-            width: 150px;
-            height: auto;
-            margin-right: 10px;
-        }
-
-        .watching-text {
-            font-size: 1em;
-            margin-bottom: 5px;
-        }
-
-        #video-title {
-            font-weight: bold;
-            font-size: 1.5em;
-        }
-
-        #video-time {
-            font-size: 1em;
-        }
-    </style>
-
 </head>
 <body>
-    <div class="video-info" id="video-info">
-        <img id="video-poster" src="img/nowhere.webp" alt="Poster du film">
-        <div>
-            <span class="watching-text">Vous regardez</span><br>
-            <strong id="video-title"></strong><br>
-            <span id="video-time"></span>
-        </div>
-    </div>
-
+    
     <video id="player" playsinline controls preload="metadata" poster="https://xalaflix.eu/upload/images/bmFSbK6HMDz5moHjIkf3BatBdca.jpg">
         <source id="video-source" src="https://pub-eef61110974d4ef6910be15b4e59be3a.r2.dev/films-720p/Moi-Moche-et-Mechant-4.mp4" type="video/mp4">
         <track kind="subtitles" label="Français" srclang="fr" src="sous-titres/subtitles.vtt" default>
@@ -71,6 +25,7 @@
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
     <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <script src="js/FWDEVPlayer.js"></script>
 
     <!-- Combined FWDEVPlayer and Plyr Script -->
@@ -109,65 +64,47 @@
             });
 
             const videoElement = document.getElementById('player');
-            const videoInfo = document.getElementById('video-info');
-            const videoTitle = document.getElementById('video-title');
-            const videoTime = document.getElementById('video-time');
+            const videoSource = document.getElementById('video-source');
+            const loaderElement = document.getElementById('video-loader');
+            const errorElement = document.getElementById('video-error');
 
-            const updateVideoInfo = () => {
-                const currentTime = videoElement.currentTime;
-                const duration = videoElement.duration;
+            // Preload video and handle error
+            videoSource.src = videoSource.src; // Reset source to begin loading
+            videoElement.load(); // Load the video
 
-                videoTitle.textContent = "Nowhere"; // Nom du film
-                videoTime.textContent = `Temps actuel : ${formatTime(currentTime)} / ${formatTime(duration)}`;
-            };
+            videoElement.addEventListener('canplay', function() {
+                loaderElement.style.display = 'none';
+                videoElement.style.display = 'block';
+            });
 
-            // Fonction pour vérifier si l'écran est supérieur à 768x625
-            const isLargeScreen = () => window.innerWidth > 768 && window.innerHeight > 625;
+            videoElement.addEventListener('error', function() {
+                loaderElement.style.display = 'none';
+                videoElement.style.display = 'none';
+                errorElement.style.display = 'block';
+            });
 
-            // Afficher les informations lorsque la vidéo est mise en pause
-            videoElement.addEventListener('pause', () => {
-                if (isLargeScreen()) {
-                    updateVideoInfo();
-                    videoInfo.style.display = 'flex'; // Affiche la zone d'information
+            // HLS (HTTP Live Streaming) support
+            player.on('ready', function(event) {
+                const instance = event.detail.plyr;
+                const sources = instance.media.querySelectorAll('source');
+                let hslSource = null;
+
+                // Detect HLS source (.m3u8) if available
+                sources.forEach(source => {
+                    if (source.src.includes('.m3u8')) {
+                        hslSource = source.src;
+                    }
+                });
+
+                // Initialize HLS.js if HLS source is found and supported
+                if (hslSource !== null && Hls.isSupported()) {
+                    const hls = new Hls();
+                    hls.loadSource(hslSource);
+                    hls.attachMedia(instance.media);
                 }
             });
-
-            // Masquer les informations lorsque la vidéo est lancée
-            videoElement.addEventListener('playing', () => {
-                videoInfo.style.display = 'none'; // Cache la zone d'information lorsque la vidéo est lue
-            });
-
-            // Masquer les informations lorsque la vidéo est complètement arrêtée
-            videoElement.addEventListener('ended', () => {
-                videoInfo.style.display = 'none'; // Cache la zone d'information lorsque la vidéo se termine
-            });
-
-            // Gérer l'affichage en plein écran
-            player.on('enterfullscreen', () => {
-                videoInfo.style.display = 'none'; // Cache la zone d'information en plein écran
-            });
-
-            player.on('exitfullscreen', () => {
-                if (videoElement.paused && isLargeScreen()) {
-                    updateVideoInfo();
-                    videoInfo.style.display = 'flex'; // Affiche les informations si la vidéo est en pause
-                }
-            });
-
-            // Fonction pour formater le temps (en secondes) en minutes ou en heures
-            function formatTime(seconds) {
-                if (seconds < 3600) {
-                    const minutes = Math.floor(seconds / 60);
-                    const secs = Math.floor(seconds % 60);
-                    return `${minutes}:${secs < 10 ? '0' : ''}${secs}`; // format MM:SS
-                } else {
-                    const hours = Math.floor(seconds / 3600);
-                    const minutes = Math.floor((seconds % 3600) / 60);
-                    const secs = Math.floor(seconds % 60);
-                    return `${hours}:${minutes < 10 ? '0' : ''}${minutes}:${secs < 10 ? '0' : ''}${secs}`; // format HH:MM:SS
-                }
-            }
         });
     </script>
 </body>
 </html>
+
