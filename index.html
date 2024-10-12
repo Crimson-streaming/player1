@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecteur Vidéo Combiné</title>
+
+    <!-- CSS Imports -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/player-crimson.css">
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css">
+
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Nunito:300,400,600,700,800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Video Player Section -->
+    <div class="video-container">
+        <video id="player" playsinline controls preload="metadata" poster="https://xalaflix.eu/upload/images/bmFSbK6HMDz5moHjIkf3BatBdca.jpg">
+            <source id="video-source" src="https://kangourou.online/films_720p/Nowhere.mov" type="video/mp4">
+            <track kind="subtitles" label="Français" srclang="fr" src="subtitles.vtt" default>
+            Votre navigateur ne prend pas en charge la balise vidéo.
+        </video>
+    </div>
+
+    <!-- JS Imports -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script disable-devtool-auto title="3" src='https://cdn.jsdelivr.net/npm/disable-devtool'></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
+    <script src="js/FWDEVPlayer.js"></script>
+
+    <!-- Combined FWDEVPlayer and Plyr Script -->
+    <script type="text/javascript">
+        // Initialisation de FWDEVPlayer
+        FWDEVPUtils.onReady(function () {
+            new FWDEVPlayer({
+                instanceName: "player2",
+                parentId: "player",
+                skinPath: "classic_skin_dark",
+                videoSource: [{ source: "https://kangourou.online/films_720p/Nowhere.mov", label: "720p" }],
+                autoPlay: "no",
+                loop: "yes",
+                maxWidth: 750,
+                maxHeight: 425,
+                volume: 0.8,
+                backgroundColor: "#000000",
+                // controller settings
+                showController: "yes",
+                showTime: "yes",
+                showFullScreenButton: "yes",
+                showVolumeButton: "yes",
+                showScrubberWhenControllerIsHidden: "yes",
+                controllerHeight: 43,
+                spaceBetweenButtons: 11,
+                // sticky on scroll
+                stickyOnScroll: "yes",
+                stickyOnScrollWidth: "700",
+                stickyOnScrollHeight: "394",
+                verticalPosition: "bottom",
+                horizontalPosition: "center"
+            });
+        });
+
+        // Initialisation de Plyr
+        document.addEventListener('DOMContentLoaded', () => {
+            const playerControls = ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen', 'settings', 'download'];
+
+            const player = new Plyr('#player', {
+                controls: playerControls,
+                quality: {
+                    default: 720,
+                    options: [720]
+                },
+                playsinline: true,
+                keyboard: { focused: true, global: true },
+                fullscreen: { enabled: true, fallback: true, iosNative: true },
+                disableContextMenu: true,
+                i18n: {
+                    play: 'Play',
+                    pause: 'Pause',
+                    mute: 'Silence',
+                    unmute: 'Son activé',
+                    enableCaptions: 'Activer les sous-titres',
+                    disableCaptions: 'Désactiver les sous-titres',
+                    download: 'Télécharger',
+                    enterFullscreen: 'Plein écran',
+                    exitFullscreen: 'Sortir du plein écran',
+                    settings: 'Réglages',
+                    speed: 'Vitesse',
+                    quality: 'Qualité',
+                    loop: 'Boucle',
+                    disabled: 'Désactivé',
+                    enabled: 'Activé',
+                    captions: 'Sous-titres',
+                    
+                },
+            });
+
+            // Afficher l'indicateur de chargement jusqu'à ce que la vidéo puisse être lue
+            const videoElement = document.getElementById('player');
+            const loadingElement = document.getElementById('loading');
+            videoElement.addEventListener('canplay', () => {
+                loadingElement.style.display = 'none';
+            });
+        });
+    </script>
+     <script>
+        // Fonction executée lors de l'utilisation du clic droit.
+        $(document).bind("contextmenu",function(){
+        // On indique au navigateur de ne pas réagir en cas de clic droit.
+        return false; });
+        </script>
+</body>
+</html>
